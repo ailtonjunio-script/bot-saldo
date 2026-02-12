@@ -4,33 +4,26 @@ import json
 import os
 
 TOKEN = os.getenv("TOKEN")
-OWNER_ID = os.getenv("OWNER_ID")
-
-if OWNER_ID is None:
-    print("OWNER_ID não encontrado!")
-    OWNER_ID = 0
-else:
-    OWNER_ID = int(OWNER_ID)
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-DATA_FILE = "dados.json"
+ARQUIVO = "dados.json"
+
+# Criar arquivo se não existir
+if not os.path.exists(ARQUIVO):
+    with open(ARQUIVO, "w") as f:
+        json.dump({"saldo": 0.0, "wins": 0, "losses": 0}, f)
 
 def carregar():
-    if not os.path.exists(DATA_FILE):
-        return {"saldo": 0.0, "vitorias": 0, "derrotas": 0}
-    with open(DATA_FILE, "r") as f:
+    with open(ARQUIVO, "r") as f:
         return json.load(f)
 
 def salvar(dados):
-    with open(DATA_FILE, "w") as f:
-        json.dump(dados, f)
-
-def formatar(valor):
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    with open(ARQUIVO, "w") as f:
+        json.dump(dados, f, indent=4)
 
 @bot.event
 async def on_ready():
@@ -38,42 +31,30 @@ async def on_ready():
 
 @bot.command()
 async def win(ctx, valor: float):
-    if ctx.author.id != OWNER_ID:
-        return
-    
     dados = carregar()
     dados["saldo"] += valor
-    dados["vitorias"] += 1
+    dados["wins"] += 1
     salvar(dados)
 
-    await ctx.send(
-        f"📊 **PAINEL**\n"
-        f"🏆 Vitórias: {dados['vitorias']}\n"
-        f"❌ Derrotas: {dados['derrotas']}\n"
-        f"💰 Saldo: {formatar(dados['saldo'])}"
-    )
+    await ctx.send(f"✅ Vitória registrada!\n💰 Saldo atual: R$ {dados['saldo']:.2f}")
 
 @bot.command()
 async def flop(ctx, valor: float):
-    if ctx.author.id != OWNER_ID:
-        return
-    
     dados = carregar()
     dados["saldo"] -= valor
-    dados["derrotas"] += 1
+    dados["losses"] += 1
     salvar(dados)
 
-    await ctx.send(
-        f"📊 **PAINEL**\n"
-        f"🏆 Vitórias: {dados['vitorias']}\n"
-        f"❌ Derrotas: {dados['derrotas']}\n"
-        f"💰 Saldo: {formatar(dados['saldo'])}"
-    )
+    await ctx.send(f"❌ Derrota registrada!\n💰 Saldo atual: R$ {dados['saldo']:.2f}")
 
 @bot.command()
-async def limpar(ctx, quantidade: int):
-    if ctx.author.id != OWNER_ID:
-        return
-    await ctx.channel.purge(limit=quantidade + 1)
+async def painel(ctx):
+    dados = carregar()
+    await ctx.send(
+        f"📊 **PAINEL**\n"
+        f"🏆 Vitórias: {dados['wins']}\n"
+        f"❌ Derrotas: {dados['losses']}\n"
+        f"💰 Saldo: R$ {dados['saldo']:.2f}"
+    )
 
 bot.run(TOKEN)
