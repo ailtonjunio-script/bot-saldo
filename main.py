@@ -4,7 +4,13 @@ import json
 import os
 
 TOKEN = os.getenv("TOKEN")
-OWNER_ID = int(os.getenv("OWNER_ID"))
+OWNER_ID = os.getenv("OWNER_ID")
+
+if OWNER_ID is None:
+    print("OWNER_ID não encontrado!")
+    OWNER_ID = 0
+else:
+    OWNER_ID = int(OWNER_ID)
 
 intents = discord.Intents.default()
 intents.message_content = True
